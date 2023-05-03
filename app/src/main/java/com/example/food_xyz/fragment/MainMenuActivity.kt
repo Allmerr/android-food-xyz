@@ -1,5 +1,6 @@
 package com.example.food_xyz.fragment
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -38,6 +39,26 @@ class MainMenuActivity: Fragment(R.layout.main_menu_activity) {
         getDataProduct(view)
     }
 
+    private suspend fun makeTrasaksi(context : Context, barang: Barang, onSuccess: () -> Unit, onFail: () -> Unit){
+
+        var baseUrl = BaseUrl().BASEURL
+        val queue = Volley.newRequestQueue(context)
+        val url = "$baseUrl/Transaksi?totalBarangDibeli=${barang.jumlahBarangYangDibeli}&totalBayar=${barang.jumlahBarangYangDibeli * barang.hargaSatuan.toInt()}&idUser=0&idBarang=${barang.idBarang}"
+        val jsonObjectRequest = JsonObjectRequest(Request.Method.GET, url, null, {response ->
+            if(response["message"] == "success" && response["status_code"] == "200"){
+                onSuccess()
+                Toast.makeText(context,"testapi suc",Toast.LENGTH_LONG).show()
+
+            }
+        },{
+            onFail()
+
+            Toast.makeText(context,"testapi err",Toast.LENGTH_LONG).show()
+
+        })
+        queue.add(jsonObjectRequest)
+    }
+
     private fun getDataProduct(view: View) {
         val baseUrl = BaseUrl().BASEURL
         val queue = Volley.newRequestQueue(view.context)
@@ -72,20 +93,14 @@ class MainMenuActivity: Fragment(R.layout.main_menu_activity) {
                 Toast.makeText(view.context,"ii",Toast.LENGTH_LONG).show()
 
                 var ii = 0
-                adapterBarang.getSelectedItem().forEach {
-                        val newQueue = Volley.newRequestQueue(view.context)
-                        val newUrl = "$baseUrl/Transaksi?totalBarangDibeli=${it.jumlahBarangYangDibeli}&totalBayar=${it.jumlahBarangYangDibeli * it.hargaSatuan.toInt()}&idUser={-}&idBarang=${it.idBarang}"
-                        val jsonObjectRequestnew = JsonObjectRequest(Request.Method.GET, newUrl, null, {newResponse ->
-                            if(newResponse["message"] == "success" && newResponse["status_code"] == "200"){
-                                ii++
-                                Toast.makeText(view.context,ii,Toast.LENGTH_LONG).show()
-                            }
+                adapterBarang.getSelectedItem().forEach {barang ->
+                    GlobalScope.launch {
+                        makeTrasaksi(view.context,barang,{
+                            Toast.makeText(view.context, "Berhasil", Toast.LENGTH_LONG).show()
                         }, {
-                            Toast.makeText(view.context,ii,Toast.LENGTH_LONG).show()
+                            Toast.makeText(view.context, "Fail", Toast.LENGTH_LONG).show()
                         })
-                        newQueue.add(jsonObjectRequestnew)
-                    Toast.makeText(view.context,"xx",Toast.LENGTH_LONG).show()
-
+                    }
                 }
             }
 
